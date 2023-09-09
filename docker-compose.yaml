@@ -9,6 +9,8 @@ services:
     build:
       context: "."
       dockerfile: "Dockerfile"
+    environment:
+      - SECRET_ID=${SECRET_ID}
     volumes:
       - ./www:/usr/share/nginx/html
 
