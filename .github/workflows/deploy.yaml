@@ -39,5 +39,5 @@ jobs:
 
       - name: docker-compose
         run: |
-          docker compose up -e SECRET_ID=${{ secrets.YANDEX_SECRET_ID }} \
+          SECRET_ID=${{ secrets.YANDEX_SECRET_ID }} docker compose up \
           -d --wait --wait-timeout 30 --build --force-recreate
