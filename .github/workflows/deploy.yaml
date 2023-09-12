@@ -40,7 +40,6 @@ jobs:
           docker container stop asap-nginx-asap-nginx-1 2>/dev/null
 
       - name: Set owner of working dir recurively (Linux)
-        if: ${{ inputs.build_platform == 'linux' }}
         run: sudo chown -R $(whoami) .
 
       - uses: actions/checkout@v2
