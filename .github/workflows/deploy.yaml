@@ -40,6 +40,8 @@ jobs:
           docker container stop asap-nginx-asap-nginx-1 2>/dev/null
 
       - uses: actions/checkout@v2
+        with:
+          clean: false
 
       - name: docker-compose
         run: |
