@@ -30,7 +30,10 @@ jobs:
         run: |
           echo runner-label=${{ steps.extract-branch.outputs.branch == 'master' && 'asap-prod-vm' || 'asap-stg-vm' }} >> "$GITHUB_OUTPUT"
 
-  deploy:  
+  deploy:
+    name: deploy
+    outputs:
+      certificate-provider: ${{ steps.nginx-start.outputs.certificate-provider }}
     needs: environment-set
     runs-on: [self-hosted, Linux, X64, "${{ needs.environment-set.outputs.runner-label }}"]
     environment: ${{ needs.environment-set.outputs.environment-key }}
@@ -46,10 +49,27 @@ jobs:
         with:
           clean: false
 
-      - name: docker-compose
+      - name: start nginx container
+        id: nginx-start
         run: |
           sudo chown -R root:root certbot
+          ./ssl-domain.sh ${{ secrets.ASAP_DOMAIN }}
           SECRET_ID=${{ secrets.YANDEX_SECRET_ID }} docker compose up \
           -d --wait --wait-timeout 30 --build --force-recreate
-          ./ssl-domain.sh ${{ env.ASAP_DOMAIN }}
-          docker compose run --rm  certbot certonly --webroot --webroot-path /var/www/certbot/ --dry-run -d ${{ secrets.ASAP_DOMAIN }} --non-interactive --agree-tos -m admin@${{ secrets.ASAP_DOMAIN }}
+
+  issue-certs:
+    name: certbot initial certificate issue
+    needs: [deploy, environment-set]
+    runs-on: [self-hosted, Linux, X64, "${{ needs.environment-set.outputs.runner-label }}"]
+    environment: ${{ needs.environment-set.outputs.environment-key }}
+    if: needs.deploy.outputs.certificate-provider == 'self-signed'
+    steps:
+      - name: certbot certonly
+        run: |
+          docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ \
+          -d ${{ secrets.ASAP_DOMAIN }} --non-interactive --agree-tos -m admin@${{ secrets.ASAP_DOMAIN }}
+      - name: rebuild and restart nginx container
+        run: |
+          ./ssl-domain.sh ${{ secrets.ASAP_DOMAIN }}
+          SECRET_ID=${{ secrets.YANDEX_SECRET_ID }} docker compose up \
+          -d --wait --wait-timeout 30 --build --force-recreate
