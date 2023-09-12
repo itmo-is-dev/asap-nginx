@@ -40,6 +40,6 @@ jobs:
       - name: docker-compose
         run: |
           ./ssl-domain.sh ${{ env.ASAP_DOMAIN }}
-          docker compose run --rm  certbot certonly --webroot --webroot-path /var/www/certbot/ --dry-run -d ${{ env.ASAP_DOMAIN }}
+          docker compose run --rm  certbot certonly --webroot --webroot-path /var/www/certbot/ --dry-run -d ${{ secrets.ASAP_DOMAIN }}
           SECRET_ID=${{ secrets.YANDEX_SECRET_ID }} docker compose up \
           -d --wait --wait-timeout 30 --build --force-recreate
