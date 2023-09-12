@@ -39,6 +39,10 @@ jobs:
         run: |
           docker container stop asap-nginx-asap-nginx-1 2>/dev/null
 
+      - name: Set owner of working dir recurively (Linux)
+        if: ${{ inputs.build_platform == 'linux' }}
+        run: sudo chown -R $(whoami) .
+
       - uses: actions/checkout@v2
         with:
           clean: false
@@ -46,6 +50,7 @@ jobs:
       - name: docker-compose
         run: |
           ./ssl-domain.sh ${{ env.ASAP_DOMAIN }}
+          sudo chown -R root:root certbot
           docker compose run --rm  certbot certonly --webroot --webroot-path /var/www/certbot/ --dry-run -d ${{ secrets.ASAP_DOMAIN }} --non-interactive --agree-tos -m admin@${{ secrets.ASAP_DOMAIN }}
           SECRET_ID=${{ secrets.YANDEX_SECRET_ID }} docker compose up \
           -d --wait --wait-timeout 30 --build --force-recreate
