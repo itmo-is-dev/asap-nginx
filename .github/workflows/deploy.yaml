@@ -35,12 +35,13 @@ jobs:
     outputs:
       certificate-provider: ${{ steps.nginx-start.outputs.certificate-provider }}
     needs: environment-set
-    runs-on: [self-hosted, Linux, X64, "${{ needs.environment-set.outputs.runner-label }}"]
+    runs-on: [ self-hosted, Linux, X64, "${{ needs.environment-set.outputs.runner-label }}" ]
     environment: ${{ needs.environment-set.outputs.environment-key }}
     steps:
       - name: stop nginx
+        continue-on-error: true
         run: |
-          docker container stop asap-nginx-asap-nginx-1 2>/dev/null
+          docker container stop asap-nginx-asap-nginx-1
 
       - name: Set owner of working dir recurively (Linux)
         run: sudo chown -R $(whoami) .
@@ -59,8 +60,8 @@ jobs:
 
   issue-certs:
     name: certbot initial certificate issue
-    needs: [deploy, environment-set]
-    runs-on: [self-hosted, Linux, X64, "${{ needs.environment-set.outputs.runner-label }}"]
+    needs: [ deploy, environment-set ]
+    runs-on: [ self-hosted, Linux, X64, "${{ needs.environment-set.outputs.runner-label }}" ]
     environment: ${{ needs.environment-set.outputs.environment-key }}
     if: needs.deploy.outputs.certificate-provider == 'self-signed'
     steps:
