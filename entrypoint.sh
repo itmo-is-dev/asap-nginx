@@ -1,8 +1,8 @@
 #!/bin/bash
 
 export IAM_TOKEN=$(curl -H Metadata-Flavor:Google http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token -s | jq -r .access_token)
-export HTUSERNAME=$(curl -X GET -H "Authorization: Bearer $IAM_TOKEN" https://payload.lockbox.api.cloud.yandex.net/lockbox/v1/secrets/e6q64n48stn4bu3ot758/payload -s | jq '(.entries[] | select( .key == "kafka-ui-user")).textValue' -r)
-export HTPASSWORD=$(curl -X GET -H "Authorization: Bearer $IAM_TOKEN" https://payload.lockbox.api.cloud.yandex.net/lockbox/v1/secrets/e6q64n48stn4bu3ot758/payload -s | jq '(.entries[] | select( .key == "kafka-ui-password")).textValue' -r)
+export HTUSERNAME=$(curl -X GET -H "Authorization: Bearer $IAM_TOKEN" https://payload.lockbox.api.cloud.yandex.net/lockbox/v1/secrets/$SECRET_ID/payload -s | jq '(.entries[] | select( .key == "kafka-ui-user")).textValue' -r)
+export HTPASSWORD=$(curl -X GET -H "Authorization: Bearer $IAM_TOKEN" https://payload.lockbox.api.cloud.yandex.net/lockbox/v1/secrets/$SECRET_ID/payload -s | jq '(.entries[] | select( .key == "kafka-ui-password")).textValue' -r)
 export EXTERNAL_IP=$(curl -H Metadata-Flavor:Google 169.254.169.254/computeMetadata/v1/instance/network-interfaces/?recursive=true -s | jq '.[].accessConfigs[].externalIp' -r)
 
 htpasswd -c -b /etc/nginx/.htpasswd $HTUSERNAME $HTPASSWORD 

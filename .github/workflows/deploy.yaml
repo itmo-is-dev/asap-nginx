@@ -1,0 +1,75 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+
+  workflow_dispatch:
+
+jobs:
+  environment-set:
+    outputs:
+      branch: ${{ steps.extract-branch.outputs.branch }}
+      environment-key: ${{ steps.setup-env.outputs.environment-key }}
+      runner-label: ${{ steps.setup-label.outputs.runner-label }}
+    name: environment-set
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract-branch
+      - name: Set environment name
+        id: setup-env
+        run: |
+          echo environment-key=${{ steps.extract-branch.outputs.branch == 'master' && 'production' || 'staging' }} >> "$GITHUB_OUTPUT"
+      - name: Set runner label
+        id: setup-label
+        run: |
+          echo runner-label=${{ steps.extract-branch.outputs.branch == 'master' && 'asap-prod-vm' || 'asap-stg-vm' }} >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: deploy
+    outputs:
+      certificate-provider: ${{ steps.nginx-start.outputs.certificate-provider }}
+    needs: environment-set
+    runs-on: [self-hosted, Linux, X64, "${{ needs.environment-set.outputs.runner-label }}"]
+    environment: ${{ needs.environment-set.outputs.environment-key }}
+    steps:
+      - name: stop nginx
+        run: |
+          docker container stop asap-nginx-asap-nginx-1 2>/dev/null
+
+      - name: Set owner of working dir recurively (Linux)
+        run: sudo chown -R $(whoami) .
+
+      - uses: actions/checkout@v2
+        with:
+          clean: false
+
+      - name: start nginx container
+        id: nginx-start
+        run: |
+          sudo chown -R root:root certbot
+          ./ssl-domain.sh ${{ secrets.ASAP_DOMAIN }}
+          SECRET_ID=${{ secrets.YANDEX_SECRET_ID }} docker compose up \
+          -d --wait --wait-timeout 30 --build --force-recreate
+
+  issue-certs:
+    name: certbot initial certificate issue
+    needs: [deploy, environment-set]
+    runs-on: [self-hosted, Linux, X64, "${{ needs.environment-set.outputs.runner-label }}"]
+    environment: ${{ needs.environment-set.outputs.environment-key }}
+    if: needs.deploy.outputs.certificate-provider == 'self-signed'
+    steps:
+      - name: certbot certonly
+        run: |
+          docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ \
+          -d ${{ secrets.ASAP_DOMAIN }} --non-interactive --agree-tos -m admin@${{ secrets.ASAP_DOMAIN }}
+      - name: rebuild and restart nginx container
+        run: |
+          ./ssl-domain.sh ${{ secrets.ASAP_DOMAIN }}
+          SECRET_ID=${{ secrets.YANDEX_SECRET_ID }} docker compose up \
+          -d --wait --wait-timeout 30 --build --force-recreate
