@@ -56,7 +56,7 @@ jobs:
           sudo chown -R root:root certbot
           ./ssl-domain.sh ${{ secrets.ASAP_DOMAIN }}
           SECRET_ID=${{ secrets.YANDEX_SECRET_ID }} docker compose up \
-          -d --wait --wait-timeout 30 --build --force-recreate
+          -d --build --force-recreate
 
   issue-certs:
     name: certbot initial certificate issue
@@ -73,4 +73,4 @@ jobs:
         run: |
           ./ssl-domain.sh ${{ secrets.ASAP_DOMAIN }}
           SECRET_ID=${{ secrets.YANDEX_SECRET_ID }} docker compose up \
-          -d --wait --wait-timeout 30 --build --force-recreate
+          -d --build --force-recreate
