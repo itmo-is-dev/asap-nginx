@@ -1,20 +1,23 @@
 version: "3.3"
+
 services:
   asap-nginx:
     ports:
       - '80:80'
       - '443:443'
-    networks: 
+    networks:
       - asap-network
     build:
       context: "."
       dockerfile: "Dockerfile"
+    restart: unless-stopped
     environment:
       - SECRET_ID=${SECRET_ID}
     volumes:
       - ./www:/usr/share/nginx/html
       - ./certbot/www:/var/www/certbot/:ro
       - ./certbot/conf/:/etc/nginx/ssl/:ro
+
   certbot:
     image: certbot/certbot:latest
     volumes:
